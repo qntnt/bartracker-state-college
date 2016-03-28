@@ -3,6 +3,7 @@
   <head>
     <meta charset="utf-8">
     <title>Heatmaps</title>
+    <link href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.6/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-1q8mTJOASx8j1Au+a5WDVnPi2lkFfwwEAa8hDDdjZlpLegxhjVME1fgjWPGmkzs7" crossorigin="anonymous">
     <style>
       html, body {
         height: 100%;
@@ -54,9 +55,15 @@
             <option value="primantis">Primanti Bros</option>
             <option value="darkhorse">The Darkhorse Tavern</option>
           </select>
-          <button type="submit">Submit</button>
+          <button type="submit" class="btn btn-default">Submit</button>
       </form>
-      <div id="popInfo"></div>
+      <table class="table table-striped">
+          <thead>
+              <tr><th>Bar</th><th>Population</th></tr>
+          </thead>
+          <tbody id="popInfo">
+          </tbody>
+      </table>
     </div>
     <div id="map"></div>
     <script>
@@ -161,7 +168,7 @@
                 return '<tr><td>'+bars[bar].name + "</td><td>" + bars[bar].pop + "</td></tr>";
             }).join('');
 
-            return "<table><thead><tr><th>Bar</th><th>Population</th></tr></thead><tbody>" + rows + "</tbody></table>";
+            return rows ;
         }
 
         function addMarkers() {
