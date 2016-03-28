@@ -74,77 +74,88 @@
 
       var map, heatmap, selectedBar, points, bars;
 
+      function randPop(min, max) {
+          return Math.floor(Math.random() * (max-min) + min);
+      }
 
       function initMap() {
         var form = document.getElementById('barform');
         form.addEventListener('submit', submitBar);
 
+        popmax = 30;
+        popmin = 1;
+
         bars = {
             shandygaff: {
                 name: 'Shandygaff',
                 coords: new google.maps.LatLng(40.7952877, -77.8597121),
-                pop: 0
+                pop: randPop(1, 30)
             },
             den: {
                 name: 'The Den',
                 coords: new google.maps.LatLng(40.7975414, -77.8568027),
-                pop: 0
+                pop: randPop(1, 30)
             },
             rathskeller: {
                 name: 'Rathskeller',
                 coords: new google.maps.LatLng(40.7950093, -77.8604945),
-                pop: 0
+                pop: randPop(1, 30)
             },
             phyrst: {
                 name: 'The Phyrst',
                 coords: new google.maps.LatLng(40.7937613, -77.8602774),
-                pop: 0
+                pop: randPop(1, 30)
             },
             indigo: {
                 name: 'Indigo',
                 coords: new google.maps.LatLng(40.7939879, -77.8618917),
-                pop: 0
+                pop: randPop(1, 30)
             },
             cafe: {
                 name: 'Cafe',
                 coords: new google.maps.LatLng(40.7931322,-77.8629912),
-                pop: 0
+                pop: randPop(1, 30)
             },
             liberty: {
                 name: 'Liberty',
                 coords: new google.maps.LatLng(40.7974817,-77.8573924),
-                pop: 0
+                pop: randPop(1, 30)
             },
             inferno: {
                 name: 'Inferno',
                 coords: new google.maps.LatLng(40.7973497,-77.8574923),
-                pop: 0
+                pop: randPop(1, 30)
             },
             saloon: {
                 name: 'The Saloon',
                 coords: new google.maps.LatLng(40.7972969,-77.8574433),
-                pop: 0
+                pop: randPop(1, 30)
             },
             chrome: {
                 name: 'Chrome',
                 coords: new google.maps.LatLng(40.7918011,-77.8620385),
-                pop: 0
+                pop: randPop(1, 30)
             },
             primantis: {
                 name: 'Primanti Bros',
                 coords: new google.maps.LatLng(40.7967017,-77.8570625),
-                pop: 0
+                pop: randPop(1, 30)
             },
             darkhorse: {
                 name: 'The Darkhorse Tavern',
                 coords: new google.maps.LatLng(40.7947671,-77.860574),
-                pop: 0
+                pop: randPop(1, 30)
             },
         }
 
         selectedBar = "shandygaff";
 
-        dataPoints = [];
+        dataPoints = Object.keys(bars).map(function (bar) {
+            return {
+                location: bars[bar].coords,
+                weight: bars[bar].pop
+            };
+        });
 
         map = new google.maps.Map(document.getElementById('map'), {
           zoom: 16,
@@ -154,11 +165,14 @@
 
         heatmap = new google.maps.visualization.HeatmapLayer({
           data: getPoints(),
-          radius: 45,
+          radius: 30,
           map: map
         });
 
+        changeGradient();
+
         addMarkers();
+        dataPoints = dataPoints.concat(randPoints());
         refreshMap();
       }
 
@@ -184,10 +198,16 @@
               label: name[0].toUpperCase()
             });
             var info = new google.maps.InfoWindow({
-                content: bars[name].name
+              content: bars[name].name
             });
             mark.addListener('click', function() {
-                info.open(map, mark);
+              bars[name].pop++;
+              dataPoints.push(bars[name].coords);
+
+              info.set('content', bars[name].name + ": " + bars[name].pop)
+              info.open(map, mark);
+
+              refreshMap();
             });
         }
 
@@ -197,20 +217,11 @@
 
       function changeGradient() {
         var gradient = [
-          'rgba(0, 255, 255, 0)',
-          'rgba(0, 255, 255, 1)',
-          'rgba(0, 191, 255, 1)',
-          'rgba(0, 127, 255, 1)',
-          'rgba(0, 63, 255, 1)',
-          'rgba(0, 0, 255, 1)',
-          'rgba(0, 0, 223, 1)',
-          'rgba(0, 0, 191, 1)',
-          'rgba(0, 0, 159, 1)',
-          'rgba(0, 0, 127, 1)',
-          'rgba(63, 0, 91, 1)',
-          'rgba(127, 0, 63, 1)',
-          'rgba(191, 0, 31, 1)',
-          'rgba(255, 0, 0, 1)'
+          'rgba(0, 0, 0, 0)',
+          'rgba(0, 0, 255, 0.5)',
+          'rgba(0, 255, 0, 0.75)',
+          'rgba(255, 255, 0, 0.85)',
+          'rgba(255, 0, 0, 0.95)',
         ]
         heatmap.set('gradient', heatmap.get('gradient') ? null : gradient);
       }
@@ -242,6 +253,42 @@
       function refreshMap() {
         heatmap.setData(getPoints())
         document.getElementById('popInfo').innerHTML = getPopInfo();
+      }
+
+      function randPoints() {
+        var barslist = Object.keys(bars);
+        var totalPop = bars[barslist[0]].pop;
+        var avglat = bars[barslist[0]].coords.lat() * totalPop;
+        var avglng = bars[barslist[0]].coords.lng() * totalPop;
+
+        for (var i=1; i<barslist.length; i++) {
+            var pop = bars[barslist[i]].pop;
+            avglat += bars[barslist[i]].coords.lat() * pop;
+            avglng += bars[barslist[i]].coords.lng() * pop;
+            totalPop += pop;
+        }
+        if (totalPop > 0) {
+            avglat = avglat / totalPop;
+            avglng = avglng / totalPop;
+        }
+
+        var randPoints = []
+        var samples = 10
+        var extraPopulation = 400
+        for (var i=0; i<=extraPopulation; i++) {
+            var lat = Math.random();
+            var lng = Math.random();
+            for (var j=0; j<samples; j++) {
+                lat += Math.random();
+                lng += Math.random();
+            }
+            lat -= samples/2;
+            lng -= samples/2;
+            lat = lat / (samples/2);
+            lng = lng / (samples/2);
+            randPoints.push(new google.maps.LatLng(avglat+lat/200, avglng+lng/200));
+        }
+        return randPoints;
       }
 
       // Heatmap data: 500 Points
